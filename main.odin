@@ -26,6 +26,11 @@ CTX :: struct
 	window: ^SDL.Window,
 	renderer: ^SDL.Renderer,
 	player: Entity,
+
+	moving_left: bool,
+	moving_right: bool,
+	moving_up: bool,
+	moving_down: bool,
 }
 
 ctx := CTX{}
@@ -56,16 +61,24 @@ main :: proc()
 		dest = SDL.Rect{
 				x = 100,
 				y = 100,
-				w = 24 * 2,
-				h = 38 * 2,
+				w = 24 * 4,
+				h = 38 * 4,
 			},
 	}
 
 
 	event : SDL.Event
+	state : [^]u8
 
 	game_loop: for
 	{
+
+		state = SDL.GetKeyboardState(nil)
+
+		ctx.moving_left = state[SDL.Scancode.A] > 0
+		ctx.moving_right = state[SDL.Scancode.D] > 0
+		ctx.moving_up = state[SDL.Scancode.W] > 0
+		ctx.moving_down = state[SDL.Scancode.S] > 0
 
     	if SDL.PollEvent(&event)
     	{
@@ -87,13 +100,33 @@ main :: proc()
 			}
 
 			if event.type == SDL.EventType.KEYUP
-			{
-			}
+			{ }
 
     	}
+    	// end event handling
 
 
-    	// paint your background scene
+    	if ctx.moving_left
+    	{
+    		ctx.player.dest.x -= 10
+    	}
+
+    	if ctx.moving_right
+    	{
+    		ctx.player.dest.x += 10
+    	}
+
+    	if ctx.moving_up
+    	{
+    		ctx.player.dest.y -= 10
+    	}
+
+    	if ctx.moving_down
+    	{
+    		ctx.player.dest.y += 10
+    	}
+
+		// paint your background scene
 		SDL.RenderCopy(ctx.renderer, ctx.player.tex, &ctx.player.source, &ctx.player.dest)
 
 		// actual flipping / presentation of the copy
