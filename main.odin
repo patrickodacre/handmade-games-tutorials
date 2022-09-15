@@ -14,6 +14,9 @@ WINDOW_H : i32 = 1000
 // WINDOW_FLAGS  :: SDL.WindowFlags{.SHOWN}
 WINDOW_FLAGS  :: SDL.WINDOW_SHOWN
 
+PLAYER_WIDTH :: 24
+PLAYER_HEIGHT :: 36
+
 Entity :: struct
 {
 	tex: ^SDL.Texture,
@@ -55,14 +58,14 @@ main :: proc()
 		source = SDL.Rect{
 				x = 0,
 				y = 0,
-				w = 24,
-				h = 38,
+				w = PLAYER_WIDTH,
+				h = PLAYER_HEIGHT,
 			},
 		dest = SDL.Rect{
 				x = 100,
 				y = 100,
-				w = 24 * 4,
-				h = 38 * 4,
+				w = PLAYER_WIDTH * 4,
+				h = PLAYER_HEIGHT * 4,
 			},
 	}
 
@@ -108,21 +111,30 @@ main :: proc()
 
     	if ctx.moving_left
     	{
+    		ctx.player.source.x = 0
+    		ctx.player.source.y = PLAYER_HEIGHT
     		ctx.player.dest.x -= 10
     	}
 
     	if ctx.moving_right
     	{
+    		ctx.player.source.x = 0
+    		ctx.player.source.y = PLAYER_HEIGHT * 2
     		ctx.player.dest.x += 10
     	}
 
     	if ctx.moving_up
     	{
+    		ctx.player.source.x = 0
+    		ctx.player.source.y = PLAYER_HEIGHT * 3
+
     		ctx.player.dest.y -= 10
     	}
 
     	if ctx.moving_down
     	{
+    		ctx.player.source.x = 0
+    		ctx.player.source.y = 0
     		ctx.player.dest.y += 10
     	}
 
