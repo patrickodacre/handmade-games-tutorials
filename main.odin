@@ -14,7 +14,7 @@ WINDOW_H : i32 = 1000
 // WINDOW_FLAGS  :: SDL.WindowFlags{.SHOWN}
 WINDOW_FLAGS  :: SDL.WINDOW_SHOWN
 
-PLAYER_WIDTH :: 24
+PLAYER_WIDTH :: 25
 PLAYER_HEIGHT :: 36
 
 Entity :: struct
@@ -24,11 +24,23 @@ Entity :: struct
 	dest: SDL.Rect,
 }
 
+Pos :: struct
+{
+	x: i32,
+	y: i32,
+}
+
 CTX :: struct
 {
 	window: ^SDL.Window,
 	renderer: ^SDL.Renderer,
 	player: Entity,
+
+	player_left_clips: [4]Pos,
+	player_right_clips: [4]Pos,
+	player_up_clips: [4]Pos,
+	player_down_clips: [4]Pos,
+
 
 	moving_left: bool,
 	moving_right: bool,
@@ -36,7 +48,37 @@ CTX :: struct
 	moving_down: bool,
 }
 
-ctx := CTX{}
+ctx := CTX{
+
+	player_left_clips = [4]Pos {
+		Pos{x = 0, y = PLAYER_HEIGHT},
+		Pos{x = PLAYER_WIDTH, y = PLAYER_HEIGHT},
+		Pos{x = PLAYER_WIDTH * 2, y = PLAYER_HEIGHT},
+		Pos{x = PLAYER_WIDTH, y = PLAYER_HEIGHT},
+	},
+
+	player_right_clips = [4]Pos {
+		Pos{x = 0, y = PLAYER_HEIGHT * 2},
+		Pos{x = PLAYER_WIDTH, y = PLAYER_HEIGHT * 2},
+		Pos{x = PLAYER_WIDTH * 2, y = PLAYER_HEIGHT * 2},
+		Pos{x = PLAYER_WIDTH, y = PLAYER_HEIGHT * 2},
+	},
+
+	player_up_clips = [4]Pos {
+		Pos{x = 0, y = PLAYER_HEIGHT * 3},
+		Pos{x = PLAYER_WIDTH, y = PLAYER_HEIGHT * 3},
+		Pos{x = PLAYER_WIDTH * 2, y = PLAYER_HEIGHT * 3},
+		Pos{x = PLAYER_WIDTH, y = PLAYER_HEIGHT * 3},
+	},
+
+	player_down_clips = [4]Pos {
+		Pos{x = 0, y = 0},
+		Pos{x = PLAYER_WIDTH, y = 0},
+		Pos{x = PLAYER_WIDTH * 2, y = 0},
+		Pos{x = PLAYER_WIDTH, y = 0},
+	},
+
+}
 
 main :: proc()
 {
@@ -56,8 +98,8 @@ main :: proc()
 	ctx.player = Entity{
 		tex = SDL.CreateTextureFromSurface(ctx.renderer, player_img),
 		source = SDL.Rect{
-				x = 0,
-				y = 0,
+				x = ctx.player_down_clips[1].x,
+				y = ctx.player_down_clips[1].y,
 				w = PLAYER_WIDTH,
 				h = PLAYER_HEIGHT,
 			},
@@ -107,34 +149,44 @@ main :: proc()
 
     	}
     	// end event handling
-
+    	animation_speed := SDL.GetTicks() / 175
+    	idx := animation_speed %% 4 // 0 , 1, 2, 3
 
     	if ctx.moving_left
     	{
-    		ctx.player.source.x = 0
-    		ctx.player.source.y = PLAYER_HEIGHT
+    		src := ctx.player_left_clips[idx]
+    		ctx.player.source.x = src.x
+    		ctx.player.source.y = src.y
+
     		ctx.player.dest.x -= 10
     	}
 
     	if ctx.moving_right
     	{
-    		ctx.player.source.x = 0
-    		ctx.player.source.y = PLAYER_HEIGHT * 2
+
+    		src := ctx.player_right_clips[idx]
+    		ctx.player.source.x = src.x
+    		ctx.player.source.y = src.y
+
     		ctx.player.dest.x += 10
     	}
 
     	if ctx.moving_up
     	{
-    		ctx.player.source.x = 0
-    		ctx.player.source.y = PLAYER_HEIGHT * 3
+    		src := ctx.player_up_clips[idx]
+    		ctx.player.source.x = src.x
+    		ctx.player.source.y = src.y
 
     		ctx.player.dest.y -= 10
     	}
 
     	if ctx.moving_down
     	{
-    		ctx.player.source.x = 0
-    		ctx.player.source.y = 0
+
+    		src := ctx.player_down_clips[idx]
+    		ctx.player.source.x = src.x
+    		ctx.player.source.y = src.y
+
     		ctx.player.dest.y += 10
     	}
 
