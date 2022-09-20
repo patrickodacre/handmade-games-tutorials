@@ -42,6 +42,13 @@ CTX :: struct
 	player_down_clips: [4]Pos,
 
 
+	target_seconds_per_frame: f64,
+	target_pixels_per_second: f64,
+
+	prev_time: f64,
+	now_time: f64,
+	delta_time: f64,
+
 	moving_left: bool,
 	moving_right: bool,
 	moving_up: bool,
@@ -77,6 +84,10 @@ ctx := CTX{
 		Pos{x = PLAYER_WIDTH * 2, y = 0},
 		Pos{x = PLAYER_WIDTH, y = 0},
 	},
+
+	// Target 60 FPS -> 1 / 60 = 0.0166666666...
+	target_seconds_per_frame = 0.0167,
+	target_pixels_per_second = 600,
 
 }
 
@@ -115,6 +126,8 @@ main :: proc()
 	event : SDL.Event
 	state : [^]u8
 
+	ctx.now_time = f64(SDL.GetPerformanceCounter()) / f64(SDL.GetPerformanceFrequency())
+
 	game_loop: for
 	{
 
@@ -152,13 +165,21 @@ main :: proc()
     	animation_speed := SDL.GetTicks() / 175
     	idx := animation_speed %% 4 // 0 , 1, 2, 3
 
+    	// calculations necessary for Target FPS or Target PPS
+    	ctx.prev_time = ctx.now_time
+    	ctx.now_time = f64(SDL.GetPerformanceCounter()) / f64(SDL.GetPerformanceFrequency())
+    	ctx.delta_time = ctx.now_time - ctx.prev_time
+
+		// Method :: Target Pixels per Frame
+    	steps := i32(ctx.delta_time * ctx.target_pixels_per_second)
+
     	if ctx.moving_left
     	{
     		src := ctx.player_left_clips[idx]
     		ctx.player.source.x = src.x
     		ctx.player.source.y = src.y
 
-    		ctx.player.dest.x -= 10
+    		ctx.player.dest.x -= steps
     	}
 
     	if ctx.moving_right
@@ -168,7 +189,7 @@ main :: proc()
     		ctx.player.source.x = src.x
     		ctx.player.source.y = src.y
 
-    		ctx.player.dest.x += 10
+    		ctx.player.dest.x += steps
     	}
 
     	if ctx.moving_up
@@ -177,7 +198,7 @@ main :: proc()
     		ctx.player.source.x = src.x
     		ctx.player.source.y = src.y
 
-    		ctx.player.dest.y -= 10
+    		ctx.player.dest.y -= steps
     	}
 
     	if ctx.moving_down
@@ -187,11 +208,18 @@ main :: proc()
     		ctx.player.source.x = src.x
     		ctx.player.source.y = src.y
 
-    		ctx.player.dest.y += 10
+    		ctx.player.dest.y += steps
     	}
 
 		// paint your background scene
 		SDL.RenderCopy(ctx.renderer, ctx.player.tex, &ctx.player.source, &ctx.player.dest)
+
+
+		// Method :: Target Seconds per Frame
+    	// if ctx.delta_time < ctx.target_seconds_per_frame
+    	// {
+	    	// SDL.Delay(u32(ctx.target_seconds_per_frame - ctx.delta_time))
+    	// }
 
 		// actual flipping / presentation of the copy
 		// read comments here :: https://wiki.libsdl.org/SDL_RenderCopy
