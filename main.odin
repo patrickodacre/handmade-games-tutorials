@@ -7,8 +7,8 @@ import SDL_Image "vendor:sdl2/image"
 WINDOW_TITLE :: "Some Game Title"
 WINDOW_X : i32 = SDL.WINDOWPOS_UNDEFINED // centered
 WINDOW_Y : i32 = SDL.WINDOWPOS_UNDEFINED
-WINDOW_W : i32 = 1200
-WINDOW_H : i32 = 1000
+WINDOW_W : i32 = 960
+WINDOW_H : i32 = 540
 
 // https://pkg.odin-lang.org/vendor/sdl2/#WindowFlag
 // WINDOW_FLAGS  :: SDL.WindowFlags{.SHOWN}
