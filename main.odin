@@ -117,8 +117,8 @@ main :: proc()
 		dest = SDL.Rect{
 				x = 100,
 				y = 100,
-				w = PLAYER_WIDTH * 4,
-				h = PLAYER_HEIGHT * 4,
+				w = PLAYER_WIDTH * 2,
+				h = PLAYER_HEIGHT * 2,
 			},
 	}
 
