@@ -228,6 +228,9 @@ main :: proc()
 
 		// clear the old renderer
 		// clear after presentation so we remain free to call RenderCopy() throughout our update code / wherever it makes the most sense
+		// make sure our background is black
+		// render clear colors the entire screen whatever color is set here
+		SDL.SetRenderDrawColor(ctx.renderer, 0, 0, 0, 100)
 		SDL.RenderClear(ctx.renderer)
 
 	} // end loop
