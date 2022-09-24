@@ -34,6 +34,9 @@ CTX :: struct
 {
 	window: ^SDL.Window,
 	renderer: ^SDL.Renderer,
+
+	target_fps_in_milliseconds: f64,
+
 	player: Entity,
 
 	player_left_clips: [4]Pos,
@@ -42,9 +45,10 @@ CTX :: struct
 	player_down_clips: [4]Pos,
 
 
-	target_seconds_per_frame: f64,
-	target_pixels_per_second: f64,
+	player_move_delay: f64,
+	player_velocity: f64,
 
+	// in ms
 	prev_time: f64,
 	now_time: f64,
 	delta_time: f64,
@@ -56,6 +60,9 @@ CTX :: struct
 }
 
 ctx := CTX{
+
+	// milliseconds
+	target_fps_in_milliseconds = 1000/60,
 
 	player_left_clips = [4]Pos {
 		Pos{x = 0, y = PLAYER_HEIGHT},
@@ -85,9 +92,7 @@ ctx := CTX{
 		Pos{x = PLAYER_WIDTH, y = 0},
 	},
 
-	// Target 60 FPS -> 1 / 60 = 0.0166666666...
-	target_seconds_per_frame = 0.0167,
-	target_pixels_per_second = 600,
+	player_velocity = 1,
 
 }
 
@@ -126,7 +131,7 @@ main :: proc()
 	event : SDL.Event
 	state : [^]u8
 
-	ctx.now_time = f64(SDL.GetPerformanceCounter()) / f64(SDL.GetPerformanceFrequency())
+	ctx.now_time = f64(SDL.GetTicks())
 
 	game_loop: for
 	{
@@ -168,58 +173,71 @@ main :: proc()
 
     	// calculations necessary for Target FPS or Target PPS
     	ctx.prev_time = ctx.now_time
-    	ctx.now_time = f64(SDL.GetPerformanceCounter()) / f64(SDL.GetPerformanceFrequency())
+    	ctx.now_time = f64(SDL.GetTicks())
     	ctx.delta_time = ctx.now_time - ctx.prev_time
 
 		// Method :: Target Pixels per Frame
-    	steps := i32(ctx.delta_time * ctx.target_pixels_per_second)
 
-    	if ctx.moving_left
-    	{
-    		src := ctx.player_left_clips[idx]
-    		ctx.player.source.x = src.x
-    		ctx.player.source.y = src.y
 
-    		ctx.player.dest.x -= steps
-    	}
+		ctx.player_move_delay = max(0, ctx.player_move_delay - ctx.delta_time)
 
-    	if ctx.moving_right
-    	{
+		if ctx.player_move_delay == 0
+		{
 
-    		src := ctx.player_right_clips[idx]
-    		ctx.player.source.x = src.x
-    		ctx.player.source.y = src.y
+	    	steps := i32(ctx.delta_time * ctx.player_velocity)
 
-    		ctx.player.dest.x += steps
-    	}
+	    	if ctx.moving_left
+	    	{
+	    		src := ctx.player_left_clips[idx]
+	    		ctx.player.source.x = src.x
+	    		ctx.player.source.y = src.y
 
-    	if ctx.moving_up
-    	{
-    		src := ctx.player_up_clips[idx]
-    		ctx.player.source.x = src.x
-    		ctx.player.source.y = src.y
+	    		move_player(-steps, 0)
 
-    		ctx.player.dest.y -= steps
-    	}
+	    		// ctx.player.dest.x -= steps
+	    	}
 
-    	if ctx.moving_down
-    	{
+	    	if ctx.moving_right
+	    	{
 
-    		src := ctx.player_down_clips[idx]
-    		ctx.player.source.x = src.x
-    		ctx.player.source.y = src.y
+	    		src := ctx.player_right_clips[idx]
+	    		ctx.player.source.x = src.x
+	    		ctx.player.source.y = src.y
 
-    		ctx.player.dest.y += steps
+	    		move_player(steps, 0)
+	    		// ctx.player.dest.x += steps
+	    	}
+
+	    	if ctx.moving_up
+	    	{
+	    		src := ctx.player_up_clips[idx]
+	    		ctx.player.source.x = src.x
+	    		ctx.player.source.y = src.y
+
+	    		move_player(0, -steps)
+	    		// ctx.player.dest.y -= steps
+	    	}
+
+	    	if ctx.moving_down
+	    	{
+
+	    		src := ctx.player_down_clips[idx]
+	    		ctx.player.source.x = src.x
+	    		ctx.player.source.y = src.y
+
+	    		move_player(0, steps)
+	    		// ctx.player.dest.y += steps
+	    	}
     	}
 
 		// paint your background scene
 		SDL.RenderCopy(ctx.renderer, ctx.player.tex, &ctx.player.source, &ctx.player.dest)
 
-
 		// Method :: Target Seconds per Frame
-    	// if ctx.delta_time < ctx.target_seconds_per_frame
+		// delta_test := ctx.delta_time
+    	// if delta_test < ctx.target_fps_in_milliseconds
     	// {
-	    	// SDL.Delay(u32(ctx.target_seconds_per_frame - ctx.delta_time))
+			// delta_test = f64(SDL.GetTicks()) - ctx.prev_time
     	// }
 
 		// actual flipping / presentation of the copy
@@ -240,3 +258,18 @@ main :: proc()
 	SDL.Quit()
 
 }
+
+move_player :: proc(dx, dy: i32)
+{
+	new_x := ctx.player.dest.x + dx
+	new_y := ctx.player.dest.y + dy
+
+	new_x = max(0, min(new_x, WINDOW_W - PLAYER_WIDTH))
+	new_y = max(0, min(new_y, WINDOW_H - PLAYER_HEIGHT))
+
+	ctx.player.dest.x = new_x
+	ctx.player.dest.y = new_y
+
+	ctx.player_move_delay = 3
+}
+
