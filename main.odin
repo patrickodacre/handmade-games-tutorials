@@ -151,6 +151,7 @@ main :: proc()
 				{
 					case .L:
 						fmt.println("Log:")
+						fmt.println(ctx.delta_time)
 					case .SPACE:
 						fmt.println("Space")
 				}
