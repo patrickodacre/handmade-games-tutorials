@@ -14,6 +14,9 @@ WINDOW_H : i32 = 540
 // WINDOW_FLAGS  :: SDL.WindowFlags{.SHOWN}
 WINDOW_FLAGS  :: SDL.WINDOW_SHOWN
 
+// milliseconds
+TARGET_FRAME_TIME : u32 : 1000/60
+
 PLAYER_WIDTH :: 25
 PLAYER_HEIGHT :: 36
 
@@ -35,23 +38,13 @@ CTX :: struct
 	window: ^SDL.Window,
 	renderer: ^SDL.Renderer,
 
-	target_fps_in_milliseconds: f64,
-
 	player: Entity,
+	player_speed: i32,
 
 	player_left_clips: [4]Pos,
 	player_right_clips: [4]Pos,
 	player_up_clips: [4]Pos,
 	player_down_clips: [4]Pos,
-
-
-	player_move_delay: f64,
-	player_velocity: f64,
-
-	// in ms
-	prev_time: f64,
-	now_time: f64,
-	delta_time: f64,
 
 	moving_left: bool,
 	moving_right: bool,
@@ -60,9 +53,7 @@ CTX :: struct
 }
 
 ctx := CTX{
-
-	// milliseconds
-	target_fps_in_milliseconds = 1000/60,
+	player_speed = 10,
 
 	player_left_clips = [4]Pos {
 		Pos{x = 0, y = PLAYER_HEIGHT},
@@ -91,8 +82,6 @@ ctx := CTX{
 		Pos{x = PLAYER_WIDTH * 2, y = 0},
 		Pos{x = PLAYER_WIDTH, y = 0},
 	},
-
-	player_velocity = 1,
 
 }
 
@@ -133,10 +122,12 @@ main :: proc()
 	event : SDL.Event
 	state : [^]u8
 
-	ctx.now_time = f64(SDL.GetTicks())
+	start : u32
+	end : u32
 
 	game_loop: for
 	{
+		start = SDL.GetTicks()
 
 		state = SDL.GetKeyboardState(nil)
 
@@ -147,6 +138,7 @@ main :: proc()
 
     	if SDL.PollEvent(&event)
     	{
+
     		if event.type == SDL.EventType.QUIT
     		{
     			break game_loop
@@ -158,7 +150,6 @@ main :: proc()
 				{
 					case .L:
 						fmt.println("Log:")
-						fmt.println(ctx.delta_time)
 					case .SPACE:
 						fmt.println("Space")
 				}
@@ -170,77 +161,63 @@ main :: proc()
 
     	}
     	// end event handling
-    	animation_speed := SDL.GetTicks() / 175
+
+    	// ctx.player_speed = 20
+
+    	animation_speed := start / 175
     	idx := animation_speed %% 4 // 0 , 1, 2, 3
 
-    	// calculations necessary for Target FPS or Target PPS
-    	ctx.prev_time = ctx.now_time
-    	ctx.now_time = f64(SDL.GetTicks())
-    	ctx.delta_time = ctx.now_time - ctx.prev_time
+    	if ctx.moving_left
+    	{
+    		src := ctx.player_left_clips[idx]
+    		ctx.player.source.x = src.x
+    		ctx.player.source.y = src.y
 
-		// Method :: Target Pixels per Frame
-
-
-		ctx.player_move_delay = max(0, ctx.player_move_delay - ctx.delta_time)
-
-		if ctx.player_move_delay == 0
-		{
-
-	    	steps := i32(ctx.delta_time * ctx.player_velocity)
-
-	    	if ctx.moving_left
-	    	{
-	    		src := ctx.player_left_clips[idx]
-	    		ctx.player.source.x = src.x
-	    		ctx.player.source.y = src.y
-
-	    		move_player(-steps, 0)
-
-	    		// ctx.player.dest.x -= steps
-	    	}
-
-	    	if ctx.moving_right
-	    	{
-
-	    		src := ctx.player_right_clips[idx]
-	    		ctx.player.source.x = src.x
-	    		ctx.player.source.y = src.y
-
-	    		move_player(steps, 0)
-	    		// ctx.player.dest.x += steps
-	    	}
-
-	    	if ctx.moving_up
-	    	{
-	    		src := ctx.player_up_clips[idx]
-	    		ctx.player.source.x = src.x
-	    		ctx.player.source.y = src.y
-
-	    		move_player(0, -steps)
-	    		// ctx.player.dest.y -= steps
-	    	}
-
-	    	if ctx.moving_down
-	    	{
-
-	    		src := ctx.player_down_clips[idx]
-	    		ctx.player.source.x = src.x
-	    		ctx.player.source.y = src.y
-
-	    		move_player(0, steps)
-	    		// ctx.player.dest.y += steps
-	    	}
+    		move_player(-ctx.player_speed, 0)
     	}
 
-		// paint your background scene
+    	if ctx.moving_right
+    	{
+
+    		src := ctx.player_right_clips[idx]
+    		ctx.player.source.x = src.x
+    		ctx.player.source.y = src.y
+
+    		move_player(ctx.player_speed, 0)
+    	}
+
+    	if ctx.moving_up
+    	{
+    		src := ctx.player_up_clips[idx]
+    		ctx.player.source.x = src.x
+    		ctx.player.source.y = src.y
+
+    		move_player(0, -ctx.player_speed)
+    	}
+
+    	if ctx.moving_down
+    	{
+
+    		src := ctx.player_down_clips[idx]
+    		ctx.player.source.x = src.x
+    		ctx.player.source.y = src.y
+
+    		move_player(0, ctx.player_speed)
+    	}
+
 		SDL.RenderCopy(ctx.renderer, ctx.player.tex, &ctx.player.source, &ctx.player.dest)
 
-		// Method :: Target Seconds per Frame
-		// delta_test := ctx.delta_time
-    	// if delta_test < ctx.target_fps_in_milliseconds
-    	// {
-			// delta_test = f64(SDL.GetTicks()) - ctx.prev_time
-    	// }
+
+
+		// check end once all update and render is completed
+		end = SDL.GetTicks()
+
+		// CAP frame rate
+		// if this doesn't match your monitor, movement will be laggy
+    	for (end - start) < TARGET_FRAME_TIME
+    	{
+			end = SDL.GetTicks()
+    	}
 
 		// actual flipping / presentation of the copy
 		// read comments here :: https://wiki.libsdl.org/SDL_RenderCopy
@@ -271,7 +248,4 @@ move_player :: proc(dx, dy: i32)
 
 	ctx.player.dest.x = new_x
 	ctx.player.dest.y = new_y
-
-	ctx.player_move_delay = 3
 }
-
