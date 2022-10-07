@@ -31,6 +31,8 @@ IS_VSYNC_ENABLED :: false
 
 PLAYER_WIDTH :: 25
 PLAYER_HEIGHT :: 36
+PLAYER_RENDER_WIDTH :: PLAYER_WIDTH * 2
+PLAYER_RENDER_HEIGHT :: PLAYER_HEIGHT * 2
 
 Entity :: struct
 {
@@ -56,7 +58,9 @@ CTX :: struct
 
 	// player
 	player: Entity,
-	player_speed: i32,
+	player_x: f64,
+	player_y: f64,
+	player_speed: f64,
 
 	player_left_clips: [4]Pos,
 	player_right_clips: [4]Pos,
@@ -131,6 +135,8 @@ main :: proc()
 	// Create Entities
 	player_img : ^SDL.Surface = SDL_Image.Load("assets/bardo.png")
 
+	ctx.player_x = 100
+	ctx.player_y = 100
 	ctx.player = Entity{
 		tex = SDL.CreateTextureFromSurface(ctx.renderer, player_img),
 		source = SDL.Rect{
@@ -140,10 +146,10 @@ main :: proc()
 				h = PLAYER_HEIGHT,
 			},
 		dest = SDL.Rect{
-				x = 100,
-				y = 100,
-				w = PLAYER_WIDTH * 2,
-				h = PLAYER_HEIGHT * 2,
+				x = player_render_x(ctx.player_x),
+				y = player_render_y(ctx.player_y),
+				w = PLAYER_RENDER_WIDTH,
+				h = PLAYER_RENDER_HEIGHT,
 			},
 	}
 
@@ -267,6 +273,8 @@ main :: proc()
 
 		SDL.RenderCopy(ctx.renderer, ctx.player.tex, &ctx.player.source, &ctx.player.dest)
 
+		SDL.SetRenderDrawColor(ctx.renderer, 255, 0, 0, 100)
+		SDL.RenderFillRect(ctx.renderer, &SDL.Rect{ i32(ctx.player_x), i32(ctx.player_y), i32(10), i32(10) })
 
 
 		// check end once all update and render is completed
@@ -298,19 +306,52 @@ main :: proc()
 
 }
 
-move_player :: proc(dx, dy: i32)
+// converting player pos x to the dest x for rendering
+player_render_x :: proc(x: f64) -> i32
 {
-	new_x := ctx.player.dest.x + dx
-	new_y := ctx.player.dest.y + dy
+	return i32(x - (PLAYER_RENDER_WIDTH / 2))
+}
 
-	new_x = max(0, min(new_x, WINDOW_W - PLAYER_WIDTH))
-	new_y = max(0, min(new_y, WINDOW_H - PLAYER_HEIGHT))
+player_render_y :: proc(y: f64) -> i32
+{
+	return i32(y - PLAYER_RENDER_HEIGHT)
+}
 
-	ctx.player.dest.x = new_x
-	ctx.player.dest.y = new_y
+move_player :: proc(dx, dy: f64)
+{
+	new_x := ctx.player_x + dx
+	new_y := ctx.player_y + dy
+
+	new_x = max(f64(MAP_X), min(new_x, f64(MAP_X + (TILE_WIDTH * NUM_TILES_X))))
+	new_y = max(f64(MAP_Y), min(new_y, f64(MAP_Y + (TILE_HEIGHT * NUM_TILES_Y))))
+
+	tile_x, tile_y := pos_to_tiles(new_x, new_y)
+
+	// don't move unless we're in our map
+	if tile_x >= 0 && tile_x < NUM_TILES_X && tile_y >= 0 && tile_y < NUM_TILES_Y
+	{
+		tile := ctx.maps[ctx.current_map_index][tile_y][tile_x]
+
+		if tile == 0
+		{
+			ctx.player_x = new_x
+			ctx.player_y = new_y
+
+			ctx.player.dest.x = player_render_x(new_x)
+			ctx.player.dest.y = player_render_y(new_y)
+		}
+	}
 }
 
 // maps
+pos_to_tiles :: proc(x, y : f64) -> (int, int)
+{
+	tile_x : int = (int(x) - MAP_X) / TILE_WIDTH
+	tile_y : int = (int(y) - MAP_Y) / TILE_HEIGHT
+
+	return tile_x, tile_y
+}
+
 change_map :: proc()
 {
 	ctx.current_map_index += 1
