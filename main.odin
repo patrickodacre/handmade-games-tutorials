@@ -16,6 +16,7 @@ WINDOW_FLAGS  :: SDL.WINDOW_SHOWN
 
 // milliseconds
 TARGET_FRAME_TIME : u32 : 1000/60
+IS_VSYNC_ENABLED :: false
 
 PLAYER_WIDTH :: 25
 PLAYER_HEIGHT :: 36
@@ -91,13 +92,25 @@ main :: proc()
 	SDL_Image.Init(SDL_Image.INIT_PNG)
 
     ctx.window = SDL.CreateWindow(WINDOW_TITLE, WINDOW_X, WINDOW_Y, WINDOW_W, WINDOW_H, WINDOW_FLAGS)
-    ctx.renderer = SDL.CreateRenderer(
-    	ctx.window,
-    	-1,
-    	SDL.RENDERER_SOFTWARE
-    	/* SDL.RENDERER_PRESENTVSYNC */
-    	// SDL.RENDERER_PRESENTVSYNC | SDL.RENDERER_ACCELERATED | SDL.RENDERER_TARGETTEXTURE
-	)
+
+    // other renderers
+	// SDL.RENDERER_PRESENTVSYNC | SDL.RENDERER_ACCELERATED | SDL.RENDERER_TARGETTEXTURE
+    if IS_VSYNC_ENABLED
+    {
+	    ctx.renderer = SDL.CreateRenderer(
+	    	ctx.window,
+	    	-1,
+	    	SDL.RENDERER_PRESENTVSYNC
+		)
+    }
+    else
+    {
+	    ctx.renderer = SDL.CreateRenderer(
+	    	ctx.window,
+	    	-1,
+	    	SDL.RENDERER_SOFTWARE
+		)
+    }
 
 	// Create Entities
 	player_img : ^SDL.Surface = SDL_Image.Load("assets/bardo.png")
