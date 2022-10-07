@@ -12,7 +12,18 @@ WINDOW_H : i32 = 540
 
 // https://pkg.odin-lang.org/vendor/sdl2/#WindowFlag
 // WINDOW_FLAGS  :: SDL.WindowFlags{.SHOWN}
-WINDOW_FLAGS  :: SDL.WINDOW_SHOWN
+WINDOW_FLAGS  :: SDL.WINDOW_SHOWN | SDL.WINDOW_RESIZABLE
+
+// Maps
+NUM_TILES_X : int : 17
+NUM_TILES_Y : int : 9
+NUM_MAPS :: 3
+Map :: [NUM_TILES_Y][NUM_TILES_X]int
+// using int b/c math w/ Map indexes
+MAP_X : int : 15
+MAP_Y : int : 15
+TILE_WIDTH : int : 55
+TILE_HEIGHT : int : 55
 
 // milliseconds
 TARGET_FRAME_TIME : u32 : 1000/60
@@ -39,6 +50,11 @@ CTX :: struct
 	window: ^SDL.Window,
 	renderer: ^SDL.Renderer,
 
+	// maps
+	maps: [NUM_MAPS]Map,
+	current_map_index: int,
+
+	// player
 	player: Entity,
 	player_speed: i32,
 
@@ -131,6 +147,11 @@ main :: proc()
 			},
 	}
 
+	// maps
+	ctx.maps[0] = map_1()
+	ctx.maps[1] = map_2()
+	ctx.maps[2] = map_3()
+	ctx.current_map_index = 0
 
 	event : SDL.Event
 	state : [^]u8
@@ -165,6 +186,8 @@ main :: proc()
 						fmt.println("Log:")
 					case .SPACE:
 						fmt.println("Space")
+					case .M:
+						change_map()
 				}
 
 			}
@@ -175,8 +198,32 @@ main :: proc()
     	}
     	// end event handling
 
-    	// ctx.player_speed = 20
+    	// render map
+		for row, row_idx in ctx.maps[ctx.current_map_index]
+		{
+			y := MAP_Y + (TILE_HEIGHT * row_idx)
 
+			for col, col_idx in row
+			{
+				x := MAP_X + (TILE_WIDTH * col_idx)
+
+				if col == 1
+				{
+					// white
+					SDL.SetRenderDrawColor(ctx.renderer, 255, 255, 255, 100)
+				}
+				else
+				{
+					// black
+					SDL.SetRenderDrawColor(ctx.renderer, 0, 0, 0, 100)
+				}
+
+				SDL.RenderFillRect(ctx.renderer, &SDL.Rect{ i32(x), i32(y), i32(TILE_WIDTH), i32(TILE_HEIGHT) })
+
+			}
+		}
+
+		// player
     	animation_speed := start / 175
     	idx := animation_speed %% 4 // 0 , 1, 2, 3
 
@@ -261,4 +308,65 @@ move_player :: proc(dx, dy: i32)
 
 	ctx.player.dest.x = new_x
 	ctx.player.dest.y = new_y
+}
+
+// maps
+change_map :: proc()
+{
+	ctx.current_map_index += 1
+
+	// start at the beginning
+	if ctx.current_map_index > len(ctx.maps) - 1
+	{
+		ctx.current_map_index = 0
+	}
+}
+
+map_1 :: proc() -> Map
+{
+	w : Map
+	w[0] = [NUM_TILES_X]int{1, 1, 1, 1,  1, 1, 1, 1,  0, 1, 1, 1,  1, 1, 1, 1,  1}
+	w[1] = [NUM_TILES_X]int{1, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  1}
+	w[2] = [NUM_TILES_X]int{1, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  1}
+	w[3] = [NUM_TILES_X]int{1, 0, 0, 0,  0, 0, 0, 1,  0, 0, 0, 0,  0, 0, 0, 0,  1}
+	w[4] = [NUM_TILES_X]int{1, 0, 0, 0,  0, 0, 0, 1,  0, 0, 0, 0,  0, 0, 0, 0,  1}
+	w[5] = [NUM_TILES_X]int{1, 0, 0, 0,  0, 0, 0, 1,  0, 0, 0, 0,  1, 1, 0, 0,  1}
+	w[6] = [NUM_TILES_X]int{1, 0, 0, 0,  0, 0, 0, 1,  0, 0, 0, 0,  0, 0, 0, 0,  1}
+	w[7] = [NUM_TILES_X]int{1, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  1}
+	w[8] = [NUM_TILES_X]int{1, 1, 1, 1,  1, 1, 1, 1,  0, 1, 1, 1,  1, 1, 1, 1,  1}
+
+	return w
+}
+
+
+map_2 :: proc() -> Map
+{
+	w : Map
+	w[0] = [NUM_TILES_X]int{1, 1, 1, 1,  1, 1, 1, 1,  0, 1, 1, 1,  1, 1, 1, 1,  1}
+	w[1] = [NUM_TILES_X]int{1, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  1}
+	w[2] = [NUM_TILES_X]int{1, 0, 0, 1,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  1}
+	w[3] = [NUM_TILES_X]int{1, 0, 0, 1,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  1}
+	w[4] = [NUM_TILES_X]int{1, 0, 0, 1,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  1}
+	w[5] = [NUM_TILES_X]int{1, 0, 0, 1,  0, 0, 0, 0,  0, 0, 0, 0,  1, 1, 0, 0,  1}
+	w[6] = [NUM_TILES_X]int{1, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  1}
+	w[7] = [NUM_TILES_X]int{1, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  1}
+	w[8] = [NUM_TILES_X]int{1, 1, 1, 1,  1, 1, 1, 1,  0, 1, 1, 1,  1, 1, 1, 1,  1}
+
+	return w
+}
+
+map_3 :: proc() -> Map
+{
+	w : Map
+	w[0] = [NUM_TILES_X]int{1, 1, 1, 1,  1, 1, 1, 1,  0, 1, 1, 1,  1, 1, 1, 1,  1}
+	w[1] = [NUM_TILES_X]int{1, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  1}
+	w[2] = [NUM_TILES_X]int{1, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  1}
+	w[3] = [NUM_TILES_X]int{1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  1}
+	w[4] = [NUM_TILES_X]int{1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  1}
+	w[5] = [NUM_TILES_X]int{1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 0, 0,  1, 1, 0, 0,  1}
+	w[6] = [NUM_TILES_X]int{1, 0, 0, 0,  0, 0, 0, 0,  1, 1, 1, 1,  0, 0, 1, 0,  1}
+	w[7] = [NUM_TILES_X]int{1, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  1}
+	w[8] = [NUM_TILES_X]int{1, 1, 1, 1,  1, 1, 1, 1,  0, 1, 1, 1,  1, 1, 1, 1,  1}
+
+	return w
 }
